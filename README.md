@@ -1,6 +1,6 @@
 # NxAtanTable
 
-**TODO: Add description**
+Generate a arctan table for CORDIC.
 
 ## Installation
 
