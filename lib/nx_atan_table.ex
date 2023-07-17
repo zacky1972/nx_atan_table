@@ -1,18 +1,5 @@
 defmodule NxAtanTable do
-  @moduledoc """
-  Documentation for `NxAtanTable`.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> NxAtanTable.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
+  @moduledoc File.read!("README.md")
+             |> String.split("<!-- MODULEDOC -->")
+             |> Enum.fetch!(1)
 end
