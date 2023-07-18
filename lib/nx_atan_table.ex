@@ -46,6 +46,11 @@ defmodule NxAtanTable do
     |> Nx.tensor(type: {:s, b})
   end
 
+  defp atan_of_reciprocal_s(0, state, b) do
+    {:reply, r1, _state} = cache_atan_of_reciprocal({1, b}, state, Map.get(state, {1, b}))
+    Bitwise.bsl(r1, 1)
+  end
+
   defp atan_of_reciprocal_s(1, state, b) do
     {:reply, r1, state} = cache_atan_of_reciprocal({49, b}, state, Map.get(state, {49, b}))
     {:reply, r2, _state} = cache_atan_of_reciprocal({57, b}, state, Map.get(state, {57, b}))
