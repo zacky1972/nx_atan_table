@@ -78,7 +78,7 @@ defmodule NxAtanTable do
     (r1 - r2)
   end
 
-  defp atan_of_reciprocal_s(n, _state, bit) when n > 0 do
+  defp atan_of_reciprocal_s(n, _state, bit) when n > 0 and n < Bitwise.bsl(1, bit - 1) do
     n2 = n * n
 
     Stream.unfold({0, 0, n, Bitwise.bsl(1, bit - 2)}, fn
@@ -102,5 +102,9 @@ defmodule NxAtanTable do
     |> Enum.reduce(fn
       {_, a, _, _}, _acc -> a
     end)
+  end
+
+  defp atan_of_reciprocal_s(n, _state, bit) when n >= Bitwise.bsl(1, bit - 1) do
+    0
   end
 end
