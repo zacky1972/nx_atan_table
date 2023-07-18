@@ -66,6 +66,18 @@ defmodule NxAtanTable do
     (r1 + r2)
   end
 
+  defp atan_of_reciprocal_s(7, state, b) do
+    {:reply, r1, state} = cache_atan_of_reciprocal({8, b}, state, Map.get(state, {8, b}))
+    {:reply, r2, _state} = cache_atan_of_reciprocal({57, b}, state, Map.get(state, {57, b}))
+    (r1 + r2)
+  end
+
+  defp atan_of_reciprocal_s(57, state, b) do
+    {:reply, r1, state} = cache_atan_of_reciprocal({32, b}, state, Map.get(state, {32, b}))
+    {:reply, r2, _state} = cache_atan_of_reciprocal({73, b}, state, Map.get(state, {73, b}))
+    (r1 - r2)
+  end
+
   defp atan_of_reciprocal_s(n, _state, bit) when n > 0 do
     n2 = n * n
 
