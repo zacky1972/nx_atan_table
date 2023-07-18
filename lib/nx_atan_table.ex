@@ -87,8 +87,6 @@ defmodule NxAtanTable do
           }
         end
     end)
-    |> Enum.to_list()
-    |> IO.inspect()
     |> Enum.reduce(fn
       {_, a, _, _}, _acc -> a
     end)
