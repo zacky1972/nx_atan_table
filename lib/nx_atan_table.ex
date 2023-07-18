@@ -15,20 +15,20 @@ defmodule NxAtanTable do
   end
 
   @impl true
-  def handle_call({:atan_of_reciprocal, n}, _from, state) do
-    cache_atan_of_reciprocal(n, state, Map.get(state, n))
+  def handle_call({:atan_of_reciprocal, n, b}, _from, state) do
+    cache_atan_of_reciprocal({n, b}, state, Map.get(state, {n, b}))
   end
 
-  def atan_of_reciprocal(n), do: GenServer.call(__MODULE__, {:atan_of_reciprocal, n})
+  def atan_of_reciprocal(n, b), do: GenServer.call(__MODULE__, {:atan_of_reciprocal, n, b})
 
-  defp cache_atan_of_reciprocal(n, state, nil) do
-    r = atan_of_reciprocal_s(n, state)
-    {:reply, r, Map.put(state, n, r)}
+  defp cache_atan_of_reciprocal({n, b}, state, nil) do
+    r = atan_of_reciprocal_s(n, state, b)
+    {:reply, r, Map.put(state, {n, b}, r)}
   end
 
-  defp cache_atan_of_reciprocal(_n, state, r), do: {:reply, r, state}
-
-  @epsilon 0.000000000000001
+  defp cache_atan_of_reciprocal(_, state, r) do
+    {:reply, r, state}
+  end
 
   @doc """
   Returns a table of signed integer values
@@ -41,26 +41,25 @@ defmodule NxAtanTable do
       n -> {n - 1, n - 1}
     end)
     |> Stream.map(fn n -> Bitwise.bsl(1, n) end)
-    |> Stream.map(&atan_of_reciprocal/1)
-    |> Stream.map(& floor(&1 * Bitwise.bsl(1, b - 2)))
+    |> Stream.map(& atan_of_reciprocal(&1, b))
     |> Enum.reverse()
     |> Nx.tensor(type: {:s, b})
   end
 
-  defp atan_of_reciprocal_s(1, state) do
-    {:reply, r1, state} = cache_atan_of_reciprocal(3, state, Map.get(state, 3))
-    {:reply, r2, state} = cache_atan_of_reciprocal(2, state, Map.get(state, 2))
-    r1 + r2
+  defp atan_of_reciprocal_s(1, state, b) do
+    {:reply, r1, state} = cache_atan_of_reciprocal({3, b}, state, Map.get(state, {3, b}))
+    {:reply, r2, _state} = cache_atan_of_reciprocal({2, b}, state, Map.get(state, {2, b}))
+    (r1 + r2)
   end
 
-  defp atan_of_reciprocal_s(n, _state) when n > 0 do
+  defp atan_of_reciprocal_s(n, _state, bit) when n > 0 do
     n2 = n * n
 
-    Stream.unfold({0, 0, 1 / n, n}, fn
+    Stream.unfold({0, 0, n, Bitwise.bsl(1, bit - 2)}, fn
       {k, a, b, c} ->
-        if abs(c) > @epsilon do
+        if c > 0 do
+          c = div(Bitwise.bsl(1, bit - 2), b * (Bitwise.bsl(k, 1) + 1))
           b = b * n2
-          c = 1.0 / b / (Bitwise.bsl(k, 1) + 1)
 
           a =
             case Bitwise.band(k, 1) do
@@ -74,6 +73,8 @@ defmodule NxAtanTable do
           }
         end
     end)
+    |> Enum.to_list()
+    |> IO.inspect()
     |> Enum.reduce(fn
       {_, a, _, _}, _acc -> a
     end)
