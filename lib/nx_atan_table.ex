@@ -3,11 +3,79 @@ defmodule NxAtanTable do
              |> String.split("<!-- MODULEDOC -->")
              |> Enum.fetch!(1)
 
+  use GenServer
+
+  @impl true
+  def init(initial_state) do
+    {:ok, initial_state}
+  end
+
+  def start_link(initial_state \\ %{}) do
+    GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
+  end
+
+  @impl true
+  def handle_call({:atan_of_reciprocal, n}, _from, state) do
+    cache_atan_of_reciprocal(n, state, Map.get(state, n))
+  end
+
+  def atan_of_reciprocal(n), do: GenServer.call(__MODULE__, {:atan_of_reciprocal, n})
+
+  defp cache_atan_of_reciprocal(n, state, nil) do
+    r = atan_of_reciprocal_s(n, state)
+    {:reply, r, Map.put(state, n, r)}
+  end
+
+  defp cache_atan_of_reciprocal(_n, state, r), do: {:reply, r, state}
+
+  @epsilon 0.000000000000001
+
   @doc """
   Returns a table of signed integer values
   $2^{b - 2} \\arctan(2^{-i})$ where $0 \\leq i \\leq n - 1$,
   which is `b` bits.
   """
-  def table(_n, _b) do
+  def table(n, b) do
+    Stream.unfold(n, fn
+      0 -> nil
+      n -> {n - 1, n - 1}
+    end)
+    |> Stream.map(fn n -> Bitwise.bsl(1, n) end)
+    |> Stream.map(&atan_of_reciprocal/1)
+    |> Stream.map(& floor(&1 * Bitwise.bsl(1, b - 2)))
+    |> Enum.reverse()
+    |> Nx.tensor(type: {:s, b})
+  end
+
+  defp atan_of_reciprocal_s(1, state) do
+    {:reply, r1, state} = cache_atan_of_reciprocal(3, state, Map.get(state, 3))
+    {:reply, r2, state} = cache_atan_of_reciprocal(2, state, Map.get(state, 2))
+    r1 + r2
+  end
+
+  defp atan_of_reciprocal_s(n, _state) when n > 0 do
+    n2 = n * n
+
+    Stream.unfold({0, 0, 1 / n, n}, fn
+      {k, a, b, c} ->
+        if abs(c) > @epsilon do
+          b = b * n2
+          c = 1.0 / b / (Bitwise.bsl(k, 1) + 1)
+
+          a =
+            case Bitwise.band(k, 1) do
+              0 -> a + c
+              1 -> a - c
+            end
+
+          {
+            {k + 1, a, b, c},
+            {k + 1, a, b, c}
+          }
+        end
+    end)
+    |> Enum.reduce(fn
+      {_, a, _, _}, _acc -> a
+    end)
   end
 end
