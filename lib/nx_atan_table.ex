@@ -5,6 +5,22 @@ defmodule NxAtanTable do
 
   use GenServer
 
+  @doc """
+  Returns a table of signed integer values
+  $2^{b - 2} \\arctan(2^{-i})$ where $0 \\leq i \\leq n - 1$,
+  which is `b` bits.
+  """
+  def table(n, b) do
+    Stream.unfold(n, fn
+      0 -> nil
+      n -> {n - 1, n - 1}
+    end)
+    |> Stream.map(fn n -> Bitwise.bsl(1, n) end)
+    |> Stream.map(& atan_of_reciprocal(&1, b))
+    |> Enum.reverse()
+    |> Nx.tensor(type: {:s, b})
+  end
+
   @impl true
   def init(initial_state) do
     {:ok, initial_state}
@@ -28,22 +44,6 @@ defmodule NxAtanTable do
 
   defp cache_atan_of_reciprocal(_, state, r) do
     {:reply, r, state}
-  end
-
-  @doc """
-  Returns a table of signed integer values
-  $2^{b - 2} \\arctan(2^{-i})$ where $0 \\leq i \\leq n - 1$,
-  which is `b` bits.
-  """
-  def table(n, b) do
-    Stream.unfold(n, fn
-      0 -> nil
-      n -> {n - 1, n - 1}
-    end)
-    |> Stream.map(fn n -> Bitwise.bsl(1, n) end)
-    |> Stream.map(& atan_of_reciprocal(&1, b))
-    |> Enum.reverse()
-    |> Nx.tensor(type: {:s, b})
   end
 
   defp atan_of_reciprocal_s(0, state, b) do
