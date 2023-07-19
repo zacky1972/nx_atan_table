@@ -11,4 +11,11 @@ defmodule NxAtanTable.Math do
     |> Nx.floor()
     |> Nx.as_type({:s, bit_opts[:bit]})
   end
+
+  defn equals_with_epsilon(t1, t2, e, b) do
+    Nx.subtract(t1, t2)
+    |> Nx.abs()
+    |> Nx.reduce_max()
+    |> Nx.less(Nx.multiply(e, Nx.pow(2, b - 2)))
+  end
 end
