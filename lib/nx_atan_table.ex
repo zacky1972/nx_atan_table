@@ -89,30 +89,31 @@ defmodule NxAtanTable do
   defp atan_of_reciprocal_s(n, _state, bit) when n > 0 and n < Bitwise.bsl(1, bit - 1) do
     n2 = n * n
 
-    Stream.unfold({0, 0, n, Bitwise.bsl(1, bit - 2)}, fn
-      {k, a, b, c} ->
-        if c > 0 do
-          c = div(Bitwise.bsl(1, bit - 2), b * (Bitwise.bsl(k, 1) + 1))
-          b = b * n2
-
-          a =
-            case Bitwise.band(k, 1) do
-              0 -> a + c
-              1 -> a - c
-            end
-
-          {
-            {k + 1, a, b, c},
-            {k + 1, a, b, c}
-          }
-        end
-    end)
+    Stream.unfold({0, 0, n, Bitwise.bsl(1, bit - 2), bit, n2}, &atan_of_reciprocal_body/1)
     |> Enum.reduce(fn
-      {_, a, _, _}, _acc -> a
+      {_, a, _, _, _, _}, _acc -> a
     end)
   end
 
   defp atan_of_reciprocal_s(n, _state, bit) when n >= Bitwise.bsl(1, bit - 1) do
     0
+  end
+
+  defp atan_of_reciprocal_body({k, a, b, c, bit, n2}) do
+    if c > 0 do
+      c = div(Bitwise.bsl(1, bit - 2), b * (Bitwise.bsl(k, 1) + 1))
+      b = b * n2
+
+      a =
+        case Bitwise.band(k, 1) do
+          0 -> a + c
+          1 -> a - c
+        end
+
+      {
+        {k + 1, a, b, c, bit, n2},
+        {k + 1, a, b, c, bit, n2}
+      }
+    end
   end
 end
